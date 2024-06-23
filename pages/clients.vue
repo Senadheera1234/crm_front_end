@@ -2,7 +2,12 @@
   <v-row class="backgroundCol">
     <v-col cols="12" md="3" class="left-content backgroundRow 3colSection">
       <v-container class="login-container">
-        <ClientsList v-if="!showForm" :clients="clients" @clients-fetched="handleClientsFetched" @client-selected="handleClientSelected"/>
+        <ClientsList
+          v-if="!showForm"
+          :clients="clients"
+          @clients-fetched="handleClientsFetched"
+          @client-selected="handleClientSelected"
+        />
         <NewClientForm
           v-else
           :form.sync="form"
@@ -13,8 +18,7 @@
       </v-container>
     </v-col>
 
-
-      <!-- Right Content -->
+    <!-- Right Content -->
     <v-col cols="12" md="9" class="9colSection">
       <div class="d-flex justify-end">
         <div class="my-2">
@@ -25,15 +29,20 @@
       </div>
       <v-row>
         <v-col cols="12" md="12">
-
           <div v-if="!selectedClient.id && !showForm" class="instruction-title">
             Click on a client to view the details.
           </div>
 
-           <!-- Client Details Card -->
+          <!-- Client Details Card -->
 
-          <v-card v-if="selectedClient.id && !showForm" class="mx-auto my-5" max-width="700">
-            <v-card-title class="headline grey lighten-2 justify-center"  >{{ selectedClient.fullName }}</v-card-title>
+          <v-card
+            v-if="selectedClient.id && !showForm"
+            class="mx-auto my-5"
+            max-width="700"
+          >
+            <v-card-title class="headline grey lighten-2 justify-center">{{
+              selectedClient.fullName
+            }}</v-card-title>
             <v-card-text>
               <v-simple-table>
                 <template v-slot:default>
@@ -50,7 +59,7 @@
                     </tr>
                     <tr>
                       <td>Mobile Number</td>
-                      <td>{{ selectedClient.mobileNumber  }}</td>
+                      <td>{{ selectedClient.mobileNumber }}</td>
                     </tr>
                     <tr>
                       <td>Email</td>
@@ -62,15 +71,22 @@
                     </tr>
                     <tr>
                       <td>Birthday</td>
-                      <td>{{form.birthday}}</td>
+                      <td>{{ form.birthday }}</td>
                     </tr>
                   </tbody>
                 </template>
               </v-simple-table>
             </v-card-text>
+            <v-card-actions>
+              <v-btn color="error" small @click="deleteClient"
+                >Delete Client</v-btn
+              >
+              <v-spacer></v-spacer>
+              <v-btn color="primary" small @click="editClient"
+                >Edit Client</v-btn
+              >
+            </v-card-actions>
           </v-card>
-          
-
         </v-col>
       </v-row>
     </v-col>
@@ -81,7 +97,6 @@
 <script>
 import NewClientForm from '@/components/NewClientForm.vue'
 import ClientsList from '@/components/ClientsList.vue'
-
 
 export default {
   components: {
@@ -113,14 +128,12 @@ export default {
     }
   },
 
-  
-
   methods: {
     toggleShowForm() {
       this.showForm = !this.showForm
       if (this.showForm) {
-      this.selectedClient = {} // Clear selected client when form is shown
-    }
+        this.selectedClient = {} // Clear selected client when form is shown
+      }
     },
     handleFormSubmit(form) {
       console.log('Form submitted:', form)
@@ -145,7 +158,9 @@ export default {
     },
     handleClientSelected(clientId) {
       // Find the selected client from clients array
-      const selectedClient = this.clients.find(client => client.id === clientId)
+      const selectedClient = this.clients.find(
+        (client) => client.id === clientId
+      )
       this.selectedClient = selectedClient
 
       // Update the form's birthday based on the selected client's NIC
@@ -176,13 +191,28 @@ export default {
         this.form.birthday = '' // Clear birthday if NIC is invalid
       }
     },
+        editClient() {
+        // Handle the client edit action
+        // console.log('Edit client:', this.selectedClient)
+        // this.showForm = true
+        // this.form = { ...this.selectedClient } // Pre-fill the form with the selected client's data
+      },
+      deleteClient() {
+        // // Handle the client delete action
+        // console.log('Delete client:', this.selectedClient)
+        // this.clients = this.clients.filter(client => client.id !== this.selectedClient.id)
+        // this.selectedClient = {} // Clear the selected client after deletion
+      }
+
+
   },
 }
 </script>
 
 
 
-<style scoped >.transparent {
+<style scoped >
+.transparent {
   background-color: transparent !important;
   box-shadow: none !important;
 }
