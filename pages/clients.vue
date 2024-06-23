@@ -5,8 +5,8 @@
       md="3"
       class="left-content backgroundRow 3colSection"
     >
-      <v-container class="login-container">
-        <ClientsList v-if="!showForm" :clients="clients" />
+    <v-container class="login-container">
+        <ClientsList v-if="!showForm" :clients="clients" @clients-fetched="handleClientsFetched"/>
         <NewClientForm
           v-else
           :form.sync="form"
@@ -33,13 +33,17 @@
           </v-btn>
         </div>
       </div>
+      <div>
+       
+      </div>
     </v-col>
   </v-row>
 </template>
 
 <script>
 import NewClientForm from '@/components/NewClientForm.vue'
-import ClientsList from '@/components/ClientsList.vue' // Assuming you have a ClientsList component
+import ClientsList from '@/components/ClientsList.vue'
+
 
 export default {
   components: {
@@ -48,13 +52,7 @@ export default {
   },
   data() {
     return {
-      clients: [
-        'John Doe',
-        'Jane Smith',
-        'Alice Johnson',
-        'Bob Brown',
-        'Charlie Davis',
-      ],
+      
       showForm: false,
       form: {
         fullName: '',
@@ -73,8 +71,13 @@ export default {
           'Invalid NIC format.',
         phone: (value) => /^\d{10}$/.test(value) || 'Invalid phone number.',
       },
+      clients: [], // Add clients data here
     }
   },
+
+
+
+
   methods: {
     toggleShowForm() {
       this.showForm = !this.showForm
@@ -97,6 +100,9 @@ export default {
         birthday: '',
       }
     },
+    handleClientsFetched(clients) {
+      this.clients = clients // set the clients data fetched from ClientsList.vue
+    }
   },
 }
 </script>

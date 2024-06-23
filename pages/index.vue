@@ -61,8 +61,8 @@ export default {
     submitForm() {
       // Simulate login logic (replace with actual API call)
       if (
-        this.email === 'madhusanka@gmail.com' &&
-        this.password === 'madhusanka'
+        this.email === '' &&
+        this.password === ''
       ) {
         // Redirect to clients page
         window.location.href = '/clients' // Replace with your actual clients page URL
