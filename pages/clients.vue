@@ -2,7 +2,7 @@
   <v-row class="backgroundCol">
     <v-col cols="12" md="3" class="left-content backgroundRow 3colSection">
       <v-container class="login-container">
-        <ClientsList v-if="!showForm" :clients="clients" @clients-fetched="handleClientsFetched"/>
+        <ClientsList v-if="!showForm" :clients="clients" @clients-fetched="handleClientsFetched" @client-selected="handleClientSelected"/>
         <NewClientForm
           v-else
           :form.sync="form"
@@ -12,6 +12,9 @@
         />
       </v-container>
     </v-col>
+
+
+      <!-- Right Content -->
     <v-col cols="12" md="9" class="9colSection">
       <div class="d-flex justify-end">
         <div class="my-2">
@@ -22,8 +25,15 @@
       </div>
       <v-row>
         <v-col cols="12" md="12">
-          <v-card class="mx-auto my-5" max-width="700">
-            <v-card-title class="headline grey lighten-2 justify-center"  >John Doe</v-card-title>
+
+          <div v-if="!selectedClient.id && !showForm" class="instruction-title">
+            Click on a client to view the details.
+          </div>
+
+           <!-- Client Details Card -->
+
+          <v-card v-if="selectedClient.id && !showForm" class="mx-auto my-5" max-width="700">
+            <v-card-title class="headline grey lighten-2 justify-center"  >{{ selectedClient.fullName }}</v-card-title>
             <v-card-text>
               <v-simple-table>
                 <template v-slot:default>
@@ -36,29 +46,31 @@
                   <tbody>
                     <tr>
                       <td>Address</td>
-                      <td>123 Main St, Springfield</td>
+                      <td>{{ selectedClient.address }}</td>
                     </tr>
                     <tr>
                       <td>Mobile Number</td>
-                      <td>+1 555-1234</td>
+                      <td>{{ selectedClient.mobileNumber  }}</td>
                     </tr>
                     <tr>
                       <td>Email</td>
-                      <td>john.doe@example.com</td>
+                      <td>{{ selectedClient.email }}</td>
                     </tr>
                     <tr>
                       <td>NIC</td>
-                      <td>123456789V</td>
+                      <td>{{ selectedClient.nic }}</td>
                     </tr>
                     <tr>
                       <td>Birthday</td>
-                      <td>1990-01-01</td>
+                      <td>{{form.birthday}}</td>
                     </tr>
                   </tbody>
                 </template>
               </v-simple-table>
             </v-card-text>
           </v-card>
+          
+
         </v-col>
       </v-row>
     </v-col>
@@ -69,6 +81,7 @@
 <script>
 import NewClientForm from '@/components/NewClientForm.vue'
 import ClientsList from '@/components/ClientsList.vue'
+
 
 export default {
   components: {
@@ -96,12 +109,18 @@ export default {
         phone: (value) => /^\d{10}$/.test(value) || 'Invalid phone number.',
       },
       clients: [], // Add clients data here
+      selectedClient: {},
     }
   },
+
+  
 
   methods: {
     toggleShowForm() {
       this.showForm = !this.showForm
+      if (this.showForm) {
+      this.selectedClient = {} // Clear selected client when form is shown
+    }
     },
     handleFormSubmit(form) {
       console.log('Form submitted:', form)
@@ -124,127 +143,168 @@ export default {
     handleClientsFetched(clients) {
       this.clients = clients // set the clients data fetched from ClientsList.vue
     },
+    handleClientSelected(clientId) {
+      // Find the selected client from clients array
+      const selectedClient = this.clients.find(client => client.id === clientId)
+      this.selectedClient = selectedClient
+
+      // Update the form's birthday based on the selected client's NIC
+      if (selectedClient && selectedClient.nic) {
+        this.updateBirthdayFromNIC(selectedClient.nic)
+      }
+    },
+
+    updateBirthdayFromNIC(nic) {
+      if (nic && (nic.length === 10 || nic.length === 12)) {
+        let year = ''
+        let dayOfYear = 0
+        if (nic.length === 10) {
+          year = '19' + nic.substring(0, 2)
+          dayOfYear = parseInt(nic.substring(2, 5), 10)
+        } else {
+          year = nic.substring(0, 4)
+          dayOfYear = parseInt(nic.substring(4, 7), 10)
+        }
+        const isFemale = dayOfYear > 500
+        if (isFemale) {
+          dayOfYear -= 500
+        }
+        const date = new Date(Number(year), 0)
+        date.setDate(dayOfYear)
+        this.$set(this.form, 'birthday', date.toISOString().split('T')[0]) // Use $set to ensure reactivity
+      } else {
+        this.form.birthday = '' // Clear birthday if NIC is invalid
+      }
+    },
   },
 }
-
 </script>
-<style scoped >
-.transparent {
-    background-color: transparent !important;
-    box-shadow: none !important;
-  }
-  
-  .backgroundRow {
-    background-color: #d9d9d9;
-  }
-  
-  .backgroundCol {
-    background-color: #ffffff;
-  }
-  
-  .login-container {
-    height: 100vh;
-    padding: 20px;
-  }
-  
-  .white-bg {
-    background-color: #ffffff;
-    border: 1px solid #d9d9d9;
-    border-radius: 8px;
-    padding: 10px;
-  }
-  
-  .mb-2 {
-    margin-bottom: 16px;
-  }
-  
-  .mt-4 {
-    margin-top: 16px;
-  }
-  
-  .headline {
-    margin: 0;
-    font-size: 1.5rem;
-    font-weight: bold;
-  }
-  
-  .form-wrapper {
-    background-color: #ffffff;
-    padding: 20px;
-    border: 1px solid #d9d9d9;
-    border-radius: 8px;
-  }
-  
-  .button-container {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 0;
-  }
-  
-  .longer-button {
-    width: 120px;
-    height: 48px;
-  }
-  
-  /* Table styles */
-  .headline {
-    margin: 0;
-    font-size: 1.5rem;
-    font-weight: bold;
-    text-align: center;
-    padding: 20px 0;
-    width: 100%; /* Ensure the title takes the full width */
-  }
-  
-  .v-card {
-    border-radius: 10px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  }
-  
-  .v-simple-table {
-    border-collapse: separate;
-    border-spacing: 0 10px;
-    width: 100%;
-  }
-  
-  thead {
-    display: none;
-  }
-  
-  tbody tr {
-    background-color: white;
-    border-radius: 5px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  }
-  
-  td {
-    padding: 10px 20px;
-  }
-  
-  td:first-child {
-    font-weight: bold;
-    color: #333;
-  }
-  
-  td:last-child {
-    color: #555;
-    padding-left: 20px;
-  }
-  
-  .v-simple-table td:nth-child(2) {
-    padding-left: 20px; /* Adjust this value as needed */
-  }
-  
-  .v-card-text {
-    padding: 0;
-  }
-  
-  .v-card-title {
-    background-color: #f5f5f5;
-    text-align: center; /* Center the text */
-    display: flex;
-    justify-content: center; /* Center the content */
-    align-items: center; /* Center vertically */
-  }
-  
+
+
+
+<style scoped >.transparent {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.backgroundRow {
+  background-color: #d9d9d9;
+}
+
+.backgroundCol {
+  background-color: #ffffff;
+}
+
+.login-container {
+  height: 100vh;
+  padding: 20px;
+}
+
+.white-bg {
+  background-color: #ffffff;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.mb-2 {
+  margin-bottom: 16px;
+}
+
+.mt-4 {
+  margin-top: 16px;
+}
+
+.headline {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.form-wrapper {
+  background-color: #ffffff;
+  padding: 20px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+}
+
+.button-container {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0;
+}
+
+.longer-button {
+  width: 120px;
+  height: 48px;
+}
+
+/* Table styles */
+.headline {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-align: center;
+  padding: 20px 0;
+  width: 100%; /* Ensure the title takes the full width */
+}
+
+.v-card {
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.v-simple-table {
+  border-collapse: separate;
+  border-spacing: 0 10px;
+  width: 100%;
+}
+
+thead {
+  display: none;
+}
+
+tbody tr {
+  background-color: white;
+  border-radius: 5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+td {
+  padding: 10px 20px;
+}
+
+td:first-child {
+  font-weight: bold;
+  color: #333;
+}
+
+td:last-child {
+  color: #555;
+  padding-left: 20px;
+}
+
+.v-simple-table td:nth-child(2) {
+  padding-left: 20px; /* Adjust this value as needed */
+}
+
+.v-card-text {
+  padding: 0;
+}
+
+.v-card-title {
+  background-color: #f5f5f5;
+  text-align: center; /* Center the text */
+  display: flex;
+  justify-content: center; /* Center the content */
+  align-items: center; /* Center vertically */
+}
+
+.instruction-title {
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: center;
+  color: #555;
+  margin-top: 15px;
+}
 </style>
