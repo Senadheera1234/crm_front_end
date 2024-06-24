@@ -150,6 +150,7 @@
 </template>
 
 <script>
+import axios from 'axios';
 import NewClientForm from '@/components/NewClientForm.vue'
 import ClientsList from '@/components/ClientsList.vue'
 
@@ -251,17 +252,30 @@ export default {
     cancelEdit() {
       this.isEditing = false
     },
-    updateClient() {
-      if (this.$refs.editForm.validate()) {
-        // Update the client details in the clients array
-        const clientIndex = this.clients.findIndex((client) => client.id === this.selectedClient.id)
-        if (clientIndex !== -1) {
-          this.$set(this.clients, clientIndex, { ...this.selectedClient, ...this.form })
-        }
-        this.isEditing = false
-      }
-    },
+          async updateClient() {
+        if (this.$refs.editForm.validate()) {
+          try {
+            // Send PUT request to update the client
+            await axios.put(`http://127.0.0.1:8000/api/clients/${this.selectedClient.id}`, {
+              fullName: this.form.fullName,
+              address: this.form.address,
+              mobileNumber: this.form.mobileNumber,
+              email: this.form.email,
+              nic: this.form.nic,
+              birthday: this.form.birthday,
+            });
 
+            // Update the client details in the clients array
+            const clientIndex = this.clients.findIndex((client) => client.id === this.selectedClient.id);
+            if (clientIndex !== -1) {
+              this.$set(this.clients, clientIndex, { ...this.selectedClient, ...this.form });
+            }
+            this.isEditing = false;
+          } catch (error) {
+            console.error('Error updating client:', error);
+          }
+        }
+      },
     editClient() {
       this.isEditing = true
       Object.assign(this.form, this.selectedClient)
@@ -269,9 +283,20 @@ export default {
 
 
 
-    deleteClient() {
-      // Implement delete client functionality
-    },
+    async deleteClient() {
+    try {
+      await axios.delete(`http://127.0.0.1:8000/api/clients/${this.selectedClient.id}`);
+      
+      // Remove the deleted client from the clients array
+      this.clients = this.clients.filter(client => client.id !== this.selectedClient.id);
+      
+      // Clear the selected client and form
+      this.selectedClient = {};
+      this.clearForm();
+    } catch (error) {
+      console.error('Error deleting client:', error);
+    }
+  },
 
 
   },
