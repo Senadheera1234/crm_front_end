@@ -16,6 +16,7 @@
           @back="handleBack"
         />
       </v-container>
+
     </v-col>
 
     <!-- Right Content -->
@@ -36,7 +37,7 @@
           <!-- Client Details Card -->
 
           <v-card
-            v-if="selectedClient.id && !showForm"
+            v-if="selectedClient.id && !showForm && !isEditing"
             class="mx-auto my-5"
             max-width="700"
           >
@@ -87,12 +88,66 @@
               >
             </v-card-actions>
           </v-card>
+
+                   
+
+
+<!-- Edit Client Form -->
+<v-card v-if="isEditing" class="mx-auto my-5" max-width="700">
+            <v-card-title class="headline grey lighten-2 justify-center">
+              Edit Client
+            </v-card-title>
+            <v-card-text>
+              <v-form ref="editForm" v-model="valid" lazy-validation>
+                <v-text-field
+                  v-model="form.fullName"
+                  :rules="[rules.required]"
+                  label="Full Name"
+                  required
+                ></v-text-field>
+                <v-text-field
+                  v-model="form.address"
+                  :rules="[rules.required]"
+                  label="Address"
+                  required
+                ></v-text-field>
+                <v-text-field
+                  v-model="form.mobileNumber"
+                  :rules="[rules.phone, rules.required]"
+                  label="Mobile Number"
+                  required
+                ></v-text-field>
+                <v-text-field
+                  v-model="form.email"
+                  :rules="[rules.email, rules.required]"
+                  label="Email"
+                  required
+                ></v-text-field>
+                <v-text-field
+                  v-model="form.nic"
+                  :rules="[rules.nic, rules.required]"
+                  label="NIC"
+                  required
+                ></v-text-field>
+                <v-text-field
+                  v-model="form.birthday"
+                  :rules="[rules.required]"
+                  label="Birthday"
+                  required
+                ></v-text-field>
+              </v-form>
+            </v-card-text>
+            <v-card-actions>
+              <v-btn color="primary" @click="updateClient">Update</v-btn>
+              <v-spacer></v-spacer>
+              <v-btn @click="cancelEdit">Back</v-btn>
+            </v-card-actions>
+          </v-card>
         </v-col>
       </v-row>
     </v-col>
   </v-row>
 </template>
-
 
 <script>
 import NewClientForm from '@/components/NewClientForm.vue'
@@ -106,6 +161,7 @@ export default {
   data() {
     return {
       showForm: false,
+      isEditing: false,
       form: {
         fullName: '',
         address: '',
@@ -191,18 +247,31 @@ export default {
         this.form.birthday = '' // Clear birthday if NIC is invalid
       }
     },
-        editClient() {
-        // Handle the client edit action
-        // console.log('Edit client:', this.selectedClient)
-        // this.showForm = true
-        // this.form = { ...this.selectedClient } // Pre-fill the form with the selected client's data
-      },
-      deleteClient() {
-        // // Handle the client delete action
-        // console.log('Delete client:', this.selectedClient)
-        // this.clients = this.clients.filter(client => client.id !== this.selectedClient.id)
-        // this.selectedClient = {} // Clear the selected client after deletion
+
+    cancelEdit() {
+      this.isEditing = false
+    },
+    updateClient() {
+      if (this.$refs.editForm.validate()) {
+        // Update the client details in the clients array
+        const clientIndex = this.clients.findIndex((client) => client.id === this.selectedClient.id)
+        if (clientIndex !== -1) {
+          this.$set(this.clients, clientIndex, { ...this.selectedClient, ...this.form })
+        }
+        this.isEditing = false
       }
+    },
+
+    editClient() {
+      this.isEditing = true
+      Object.assign(this.form, this.selectedClient)
+    },
+
+
+
+    deleteClient() {
+      // Implement delete client functionality
+    },
 
 
   },
