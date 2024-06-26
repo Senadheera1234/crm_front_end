@@ -7,7 +7,7 @@
       :clipped="clipped"
       fixed
       app
-      style="padding-right: 0; margin-right: 0;"
+      style="padding-right: 0;margin-right: 0;"
     >
     <v-list>
         <v-list-item
@@ -38,8 +38,12 @@
       
     </v-app-bar>
     <v-main>
-      <v-container>
-        <Nuxt />
+      <v-container fluid class="fill-height pa-0">
+        <v-row no-gutters>
+          <v-col>
+            <Nuxt />
+          </v-col>
+        </v-row>
       </v-container>
     </v-main>
     <v-navigation-drawer v-model="rightDrawer" :right="right" temporary fixed>
@@ -96,7 +100,7 @@ export default {
       miniVariant: false,
       right: true,
       rightDrawer: false,
-      title: 'Vuetify.js',
+      title: 'CRM Postmasters',
     }
   },
 }
@@ -111,5 +115,19 @@ export default {
 
 .custom-active-class .v-icon {
   color: white !important; /* Change icon color */
+}
+
+.fill-height {
+  height: 100%;
+}
+
+.no-gutters {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+.no-gutters > .v-col {
+  padding-right: 0;
+  padding-left: 0;
 }
 </style>
