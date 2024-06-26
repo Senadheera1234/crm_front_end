@@ -2,7 +2,12 @@
   <v-row class="backgroundCol">
     <v-col cols="12" md="3" class="left-content backgroundRow 3colSection">
       <v-container class="login-container">
-        <ClientsList v-if="!showForm" :clients="clients" @clients-fetched="handleClientsFetched" @client-selected="handleClientSelected"/>
+        <ClientsList
+          v-if="!showForm"
+          :clients="clients"
+          @clients-fetched="handleClientsFetched"
+          @client-selected="handleClientSelected"
+        />
         <NewClientForm
           v-else
           :form.sync="form"
@@ -11,10 +16,10 @@
           @back="handleBack"
         />
       </v-container>
+
     </v-col>
 
-
-      <!-- Right Content -->
+    <!-- Right Content -->
     <v-col cols="12" md="9" class="9colSection">
       <div class="d-flex justify-end">
         <div class="my-2">
@@ -25,15 +30,20 @@
       </div>
       <v-row>
         <v-col cols="12" md="12">
-
           <div v-if="!selectedClient.id && !showForm" class="instruction-title">
             Click on a client to view the details.
           </div>
 
-           <!-- Client Details Card -->
+          <!-- Client Details Card -->
 
-          <v-card v-if="selectedClient.id && !showForm" class="mx-auto my-5" max-width="700">
-            <v-card-title class="headline grey lighten-2 justify-center"  >{{ selectedClient.fullName }}</v-card-title>
+          <v-card
+            v-if="selectedClient.id && !showForm && !isEditing"
+            class="mx-auto my-5"
+            max-width="700"
+          >
+            <v-card-title class="headline grey lighten-2 justify-center">{{
+              selectedClient.fullName
+            }}</v-card-title>
             <v-card-text>
               <v-simple-table>
                 <template v-slot:default>
@@ -50,7 +60,7 @@
                     </tr>
                     <tr>
                       <td>Mobile Number</td>
-                      <td>{{ selectedClient.mobileNumber  }}</td>
+                      <td>{{ selectedClient.mobileNumber }}</td>
                     </tr>
                     <tr>
                       <td>Email</td>
@@ -62,26 +72,87 @@
                     </tr>
                     <tr>
                       <td>Birthday</td>
-                      <td>{{form.birthday}}</td>
+                      <td>{{ form.birthday }}</td>
                     </tr>
                   </tbody>
                 </template>
               </v-simple-table>
             </v-card-text>
+            <v-card-actions>
+              <v-btn color="error" small @click="deleteClient"
+                >Delete Client</v-btn
+              >
+              <v-spacer></v-spacer>
+              <v-btn color="primary" small @click="editClient"
+                >Edit Client</v-btn
+              >
+            </v-card-actions>
           </v-card>
-          
 
+                   
+
+
+<!-- Edit Client Form -->
+<v-card v-if="isEditing" class="mx-auto my-5" max-width="700">
+            <v-card-title class="headline grey lighten-2 justify-center">
+              Edit Client
+            </v-card-title>
+            <v-card-text>
+              <v-form ref="editForm" v-model="valid" lazy-validation>
+                <v-text-field
+                  v-model="form.fullName"
+                  :rules="[rules.required]"
+                  label="Full Name"
+                  required
+                ></v-text-field>
+                <v-text-field
+                  v-model="form.address"
+                  :rules="[rules.required]"
+                  label="Address"
+                  required
+                ></v-text-field>
+                <v-text-field
+                  v-model="form.mobileNumber"
+                  :rules="[rules.phone, rules.required]"
+                  label="Mobile Number"
+                  required
+                ></v-text-field>
+                <v-text-field
+                  v-model="form.email"
+                  :rules="[rules.email, rules.required]"
+                  label="Email"
+                  required
+                ></v-text-field>
+                <v-text-field
+                  v-model="form.nic"
+                  :rules="[rules.nic, rules.required]"
+                  label="NIC"
+                  required
+                ></v-text-field>
+                <v-text-field
+                  v-model="form.birthday"
+                  :rules="[rules.required]"
+                  label="Birthday"
+                  required
+                ></v-text-field>
+              </v-form>
+            </v-card-text>
+            <v-card-actions>
+              <v-btn color="primary" @click="updateClient">Update</v-btn>
+              <v-spacer></v-spacer>
+              <v-btn @click="cancelEdit">Back</v-btn>
+            </v-card-actions>
+          </v-card>
         </v-col>
       </v-row>
     </v-col>
   </v-row>
 </template>
 
-
 <script>
+import axios from 'axios';
 import NewClientForm from '@/components/NewClientForm.vue'
 import ClientsList from '@/components/ClientsList.vue'
-
 
 export default {
   components: {
@@ -91,6 +162,7 @@ export default {
   data() {
     return {
       showForm: false,
+      isEditing: false,
       form: {
         fullName: '',
         address: '',
@@ -113,14 +185,12 @@ export default {
     }
   },
 
-  
-
   methods: {
     toggleShowForm() {
       this.showForm = !this.showForm
       if (this.showForm) {
-      this.selectedClient = {} // Clear selected client when form is shown
-    }
+        this.selectedClient = {} // Clear selected client when form is shown
+      }
     },
     handleFormSubmit(form) {
       console.log('Form submitted:', form)
@@ -145,7 +215,9 @@ export default {
     },
     handleClientSelected(clientId) {
       // Find the selected client from clients array
-      const selectedClient = this.clients.find(client => client.id === clientId)
+      const selectedClient = this.clients.find(
+        (client) => client.id === clientId
+      )
       this.selectedClient = selectedClient
 
       // Update the form's birthday based on the selected client's NIC
@@ -176,13 +248,65 @@ export default {
         this.form.birthday = '' // Clear birthday if NIC is invalid
       }
     },
+
+    cancelEdit() {
+      this.isEditing = false
+    },
+          async updateClient() {
+        if (this.$refs.editForm.validate()) {
+          try {
+            // Send PUT request to update the client
+            await axios.put(`http://127.0.0.1:8000/api/clients/${this.selectedClient.id}`, {
+              fullName: this.form.fullName,
+              address: this.form.address,
+              mobileNumber: this.form.mobileNumber,
+              email: this.form.email,
+              nic: this.form.nic,
+              birthday: this.form.birthday,
+            });
+
+            // Update the client details in the clients array
+            const clientIndex = this.clients.findIndex((client) => client.id === this.selectedClient.id);
+            if (clientIndex !== -1) {
+              this.$set(this.clients, clientIndex, { ...this.selectedClient, ...this.form });
+            }
+            this.isEditing = false;
+          } catch (error) {
+            console.error('Error updating client:', error);
+          }
+        }
+      },
+    editClient() {
+      this.isEditing = true
+      Object.assign(this.form, this.selectedClient)
+    },
+
+
+
+    async deleteClient() {
+    try {
+      await axios.delete(`http://127.0.0.1:8000/api/clients/${this.selectedClient.id}`);
+      
+      // Remove the deleted client from the clients array
+      this.clients = this.clients.filter(client => client.id !== this.selectedClient.id);
+      
+      // Clear the selected client and form
+      this.selectedClient = {};
+      this.clearForm();
+    } catch (error) {
+      console.error('Error deleting client:', error);
+    }
+  },
+
+
   },
 }
 </script>
 
 
 
-<style scoped >.transparent {
+<style scoped >
+.transparent {
   background-color: transparent !important;
   box-shadow: none !important;
 }
