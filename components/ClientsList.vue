@@ -4,7 +4,7 @@
     <v-list class="transparent">
       <v-list-item-group>
         <v-card v v-for="client in clients" :key="client.id" class="mb-1">
-          <v-list-item>
+          <v-list-item @click="selectClient(client.id)">
             <v-list-item-icon>
               <v-icon>{{ 'mdi-account' }}</v-icon>
             </v-list-item-icon>
@@ -37,6 +37,9 @@ export default {
         this.clients = res.data.data // assuming `data` array is where clients are nested
         this.$emit('clients-fetched', this.clients) // emit clients data to parent
       })
+    },
+    selectClient(clientId) {
+      this.$emit('client-selected', clientId) // emit selected client ID to parent
     },
   },
 }
