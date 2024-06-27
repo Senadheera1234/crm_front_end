@@ -7,7 +7,9 @@
           <v-card-title>
             <v-row>
               <v-col class="custom-field" style="padding-bottom: 10px">
-                <h3 class="custom-title">Add New Client</h3>
+                <h3 class="custom-title">
+                  {{ isEditing ? 'Edit Client' : 'Add New Client' }}
+                </h3>
               </v-col>
             </v-row>
           </v-card-title>
@@ -75,50 +77,75 @@
                 readonly
                 class="custom-field"
               ></v-text-field>
-              <v-card-actions class="custom-actions">
-                <v-spacer class="custom-field"></v-spacer>
+              <v-spacer class="custom-field"></v-spacer>
+
+              <v-row>
                 <v-btn
+                  color="warning"
+                  @click="cancelEdit"
+                  v-if="isEditing"
+                  style="
+                    height: 30px;
+                    width: 80px;
+                    margin: 0 !important;
+                    justify-self: start;
+                  "
+                >
+                  CANCEL
+                </v-btn>
+                <v-spacer></v-spacer>
+
+                <v-btn
+                  v-if="!isEditing"
                   color="primary"
                   type="submit"
                   style="height: 30px; padding: 0 20px 0 20; margin: 0 0 0 0"
-                  >CREATE</v-btn
                 >
-              </v-card-actions>
+                  CREATE
+                </v-btn>
+                <v-btn
+                  v-else
+                  color="primary"
+                  @click="handleUpdate"
+                  style="height: 30px; padding: 0 20px 0 20; margin: 0 0 0 0"
+                >
+                  UPDATE
+                </v-btn>
+              </v-row>
             </v-form>
           </v-card-text>
         </v-card>
       </v-col>
 
-      <v-col cols="12" md="9" style="padding-right: 0; margin-right;: 0">
-      
-        <v-card dense>
+      <v-col cols="12" md="9" style="padding-right: 0; margin-right: 0">
+        <v-card dense flat>
           <v-card-title>
-            <h3 class="custom-title">Client List </h3>
+            <h3 class="custom-title">Client List</h3>
 
             <v-spacer></v-spacer>
             <v-text-field
-            v-model="search"
-            label="Search"
-            single-line
-            hide-details
+              v-model="search"
+              label="Search"
+              single-line
+              hide-details
             ></v-text-field>
           </v-card-title>
           <v-data-table
-            
             :headers="headers"
             :items="filteredClients"
             item-key="name"
             class="elevation-1"
             dense
-            >
-           
-        
-        </v-data-table>
-      
-         
-        </v-card>
-        
+          >
+            <template v-slot:[`item.actions`]="{ item }">
+              <v-icon style="color: brown" small @click="editCustomer(item)"
+                >mdi-pencil</v-icon
+              >
+            </template>
+          </v-data-table>
 
+          ''
+        </v-card>
       </v-col>
     </v-row>
   </v-container>
@@ -133,21 +160,23 @@ export default {
   props: {
     form: Object,
   },
-  
+
   data() {
     return {
       search: '',
-       headers: [
-          { text: 'Name', align: 'start', sortable: false, value: 'fullName' },
-          { text: 'Address', value: 'address' },
-          { text: 'Phone', value: 'mobileNumber' },
-          { text: 'Email', value: 'email' },
-          { text: 'NIC', value: 'nic' },
-          { text: 'Birth Day', value: 'birthDay' },
-        
-        ],
-        clients: [],
-       
+      isEditing: false,
+      currentClientId: null,
+      headers: [
+        { text: 'Name', align: 'start', sortable: false, value: 'fullName' },
+        { text: 'Address', value: 'address' },
+        { text: 'Phone', value: 'mobileNumber' },
+        { text: 'Email', value: 'email' },
+        { text: 'NIC', value: 'nic' },
+        { text: 'Birth Day', value: 'birthDay' },
+        { text: 'Actions', value: 'actions', sortable: false },
+      ],
+      clients: [],
+
       localForm: {
         fullName: '',
         address: '',
@@ -192,16 +221,46 @@ export default {
     async handleSubmit() {
       if (this.$refs.form.validate()) {
         try {
-          await axios.post('http://127.0.0.1:8000/api/clients', this.localForm) // Removed 'response' assignment
-          alert('Client added successfully!')
-          this.clearForm() // Clear the form after successful submission
-          this.fetchClients() // Fetch updated list after adding
+          if (this.isEditing) {
+            // Update existing client
+            await axios.put(
+              `http://127.0.0.1:8000/api/clients/${this.currentClientId}`,
+              this.localForm
+            )
+            alert('Client updated successfully!')
+          } else {
+            // Create new client
+            await axios.post(
+              'http://127.0.0.1:8000/api/clients',
+              this.localForm
+            )
+            alert('Client added successfully!')
+          }
+          this.clearForm()
+          this.fetchClients()
         } catch (error) {
           alert(
-            `Error adding client: ${
-              error.response ? error.response.data : error.message
+            `Error ${this.isEditing ? 'updating' : 'adding'} client: ${
+              error.message
             }`
           )
+        }
+      }
+    },
+    async handleUpdate() {
+      // This method is called when updating an existing client directly via the UPDATE button
+      if (this.$refs.form.validate()) {
+        try {
+          await axios.put(
+            `http://127.0.0.1:8000/api/clients/${this.currentClientId}`,
+            this.localForm
+          )
+          alert('Client updated successfully!')
+          this.clearForm()
+          this.fetchClients()
+          this.isEditing = false // Reset editing mode
+        } catch (error) {
+          alert(`Error updating client: ${error.message}`)
         }
       }
     },
@@ -250,6 +309,8 @@ export default {
     },
     editCustomer(item) {
       this.localForm = { ...item }
+      this.currentClientId = item.id
+      this.isEditing = true
       window.scrollTo(0, 0) // Scroll to top to see the form
     },
 
@@ -257,14 +318,19 @@ export default {
       // from here we have methods for clients show table
       return 'small-font'
     },
+    cancelEdit() {
+      this.clearForm();
+      this.isEditing = false;
+   
+    },
   },
   computed: {
     filteredClients() {
-      return this.clients.filter(client =>
+      return this.clients.filter((client) =>
         client.fullName.toLowerCase().includes(this.search.toLowerCase())
       )
     },
-    },
+  },
 }
 </script>
 
@@ -322,11 +388,11 @@ export default {
 }
 
 .custom-actions {
-  padding: 0;
-  margin: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-top: 0;
+  margin-bottom: 0;
 }
-
-
 
 .v-data-table th,
 .v-data-table td {
@@ -334,12 +400,18 @@ export default {
 }
 
 ::v-deep .v-data-table {
-  font-size: 10px !important; 
+  font-size: 10px !important;
 }
 
 ::v-deep .v-data-table th,
 ::v-deep .v-data-table td {
   padding: 10px !important; /* Adjust padding as needed */
   font-size: 9.2px !important;
+}
+
+.button-container {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
 }
 </style>
