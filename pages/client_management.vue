@@ -1,13 +1,15 @@
 <template>
-  <v-container>
+  <v-container class="container-fluid">
     <v-row>
       <!-- Add new customer section -->
-      <v-col cols="12" md="4" style="padding-left: 0; margin-left: 0">
+      <v-col cols="12" md="3" style="padding-left: 0; margin-left: 0">
         <v-card class="custom-card" flat style="margin-left: 0">
           <v-card-title>
             <v-row>
               <v-col class="custom-field" style="padding-bottom: 10px">
-                <h3 class="custom-title">Add New Customer</h3>
+                <h3 class="custom-title">
+                  {{ isEditing ? 'Edit Client' : 'Add New Client' }}
+                </h3>
               </v-col>
             </v-row>
           </v-card-title>
@@ -67,7 +69,7 @@
                 style="margin-bottom: 5px"
               ></v-text-field>
               <v-text-field
-                label="birthDay"
+                label="Birth Day"
                 :rules="[rules.required]"
                 v-model="localForm.birthDay"
                 outlined
@@ -75,25 +77,110 @@
                 readonly
                 class="custom-field"
               ></v-text-field>
-              <v-card-actions class="custom-actions">
-                <v-spacer class="custom-field"></v-spacer>
+              <v-spacer class="custom-field"></v-spacer>
+
+              <v-row>
                 <v-btn
+                  color="warning"
+                  @click="cancelEdit"
+                  v-if="isEditing"
+                  style="
+                    height: 30px;
+                    width: 80px;
+                    margin: 0 !important;
+                    justify-self: start;
+                  "
+                >
+                  CANCEL
+                </v-btn>
+                <v-spacer></v-spacer>
+
+                <v-btn
+                  v-if="!isEditing"
                   color="primary"
                   type="submit"
                   style="height: 30px; padding: 0 20px 0 20; margin: 0 0 0 0"
-                  >CREATE</v-btn
                 >
-              </v-card-actions>
+                  CREATE
+                </v-btn>
+                <v-btn
+                  v-else
+                  color="primary"
+                  @click="handleUpdate"
+                  style="height: 30px; padding: 0 20px 0 20; margin: 0 0 0 0"
+                >
+                  UPDATE
+                </v-btn>
+              </v-row>
             </v-form>
           </v-card-text>
         </v-card>
       </v-col>
 
-      <!-- customer list section -->
-      <v-col cols="12" md="8">
-        <v-text> Hi there </v-text>
+      <v-col cols="12" md="9" style="padding-right: 0; margin-right: 0">
+        <v-card dense flat>
+          <v-card-title>
+            <h3 class="custom-title">Client List</h3>
+
+            <v-spacer></v-spacer>
+            <v-text-field
+              v-model="search"
+              label="Search"
+              single-line
+              hide-details
+            ></v-text-field>
+          </v-card-title>
+          <v-data-table
+            :headers="headers"
+            :items="filteredClients"
+            item-key="name"
+            class="elevation-1"
+            dense
+          >
+            <template v-slot:[`item.actions`]="{ item }">
+              <v-row no-gutters>
+                <v-col class="d-flex align-center">
+                  <v-icon
+                    style="color: darkblue; cursor: pointer"
+                    small
+                    @click="editCustomer(item)"
+                  >
+                    mdi-pencil
+                  </v-icon>
+                </v-col>
+                <v-col class="d-flex align-center">
+                  <v-icon
+                    style="color: red; cursor: pointer"
+                    small
+                    @click="openDeleteDialog(item)"
+                  >
+                    mdi-delete
+                  </v-icon>
+                </v-col>
+              </v-row>
+            </template>
+          </v-data-table>
+        </v-card>
       </v-col>
     </v-row>
+
+    <!-- Confirmation Dialog -->
+    <v-dialog v-model="dialog" max-width="400">
+      <v-card>
+        <v-card-title class="headline">Confirm Delete</v-card-title>
+        <v-card-text>
+          Are you sure you want to delete
+          {{ clientToDelete ? clientToDelete.fullName : 'this client' }}?
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="blue darken-1" text @click="dialog = false"
+            >Cancel</v-btn
+          >
+          <v-btn color="red darken-1" text @click="confirmDelete">Delete</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -106,19 +193,60 @@ export default {
   props: {
     form: Object,
   },
+
   data() {
     return {
-      localForm: { ...this.form },
+      search: '',
+      isEditing: false,
+      currentClientId: null,
+      dialog: false,
+      clientToDelete: null, // Store the client to be deleted
+      headers: [
+        { text: 'Name', align: 'start', sortable: false, value: 'fullName' },
+        { text: 'Address', value: 'address' },
+        { text: 'Phone', value: 'mobileNumber' },
+        { text: 'Email', value: 'email' },
+        { text: 'NIC', value: 'nic' },
+        { text: 'Birth Day', value: 'birthDay' },
+        { text: 'Actions', value: 'actions', sortable: false },
+      ],
+      clients: [],
+
+      localForm: {
+        fullName: '',
+        address: '',
+        mobileNumber: '',
+        email: '',
+        nic: '',
+        birthDay: '',
+      },
       rules: {
-        required: (value) => !!value || 'Required.',
-        email: (value) => /.+@.+\..+/.test(value) || 'Invalid email.',
-        nic: (value) =>
-          /^\d{9}[VvXx]$/.test(value) ||
-          /^\d{12}$/.test(value) ||
-          'Invalid NIC format.',
-        phone: (value) => /^\d{10}$/.test(value) || 'Invalid phone number.',
+        required: (value) => {
+          console.log('Validating required:', value)
+          return !!value || 'Required.'
+        },
+        email: (value) => {
+          console.log('Validating email:', value)
+          return /.+@.+\..+/.test(value) || 'Invalid email.'
+        },
+        nic: (value) => {
+          console.log('Validating NIC:', value)
+          return (
+            /^\d{9}[VvXx]$/.test(value) ||
+            /^\d{12}$/.test(value) ||
+            'Invalid NIC format.'
+          )
+        },
+        phone: (value) => {
+          console.log('Validating phone:', value)
+          return /^\d{10}$/.test(value) || 'Invalid phone number.'
+        },
       },
     }
+  },
+
+  mounted() {
+    this.fetchClients()
   },
   methods: {
     updateForm(field, value) {
@@ -128,12 +256,46 @@ export default {
     async handleSubmit() {
       if (this.$refs.form.validate()) {
         try {
-          await axios.post('http://127.0.0.1:8000/api/clients', this.localForm) // Removed 'response' assignment
-          alert('Client added successfully!')
-          this.clearForm() // Clear the form after successful submission
+          if (this.isEditing) {
+            // Update existing client
+            await axios.put(
+              `http://127.0.0.1:8000/api/clients/${this.currentClientId}`,
+              this.localForm
+            )
+            alert('Client updated successfully!')
+          } else {
+            // Create new client
+            await axios.post(
+              'http://127.0.0.1:8000/api/clients',
+              this.localForm
+            )
+            alert('Client added successfully!')
+          }
+          this.clearForm()
+          this.fetchClients()
         } catch (error) {
-         
-         console.error('Error adding client:', error.response ? error.response.data : error.message)
+          alert(
+            `Error ${this.isEditing ? 'updating' : 'adding'} client: ${
+              error.message
+            }`
+          )
+        }
+      }
+    },
+    async handleUpdate() {
+      // This method is called when updating an existing client directly via the UPDATE button
+      if (this.$refs.form.validate()) {
+        try {
+          await axios.put(
+            `http://127.0.0.1:8000/api/clients/${this.currentClientId}`,
+            this.localForm
+          )
+          alert('Client updated successfully!')
+          this.clearForm()
+          this.fetchClients()
+          this.isEditing = false // Reset editing mode
+        } catch (error) {
+          alert(`Error updating client: ${error.message}`)
         }
       }
     },
@@ -171,12 +333,83 @@ export default {
         this.$emit('update:form', { ...this.localForm })
       }
     },
+
+    async fetchClients() {
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/clients')
+        this.clients = response.data.data
+      } catch (error) {
+        alert(`Error fetching Clients: ${error.message}`)
+      }
+    },
+    editCustomer(item) {
+      this.localForm = { ...item }
+      this.currentClientId = item.id
+      this.isEditing = true
+      window.scrollTo(0, 0) // Scroll to top to see the form
+    },
+    openDeleteDialog(item) {
+      this.clientToDelete = item
+      this.dialog = true
+    },
+
+    async confirmDelete() {
+      try {
+        await axios.delete(
+          `http://127.0.0.1:8000/api/clients/${this.clientToDelete.id}`
+        )
+        alert('Client deleted successfully!')
+        this.fetchClients() // Refresh client list after deletion
+        this.dialog = false // Close the dialog
+      } catch (error) {
+        alert(`Error deleting client: ${error.message}`)
+      }
+    },
+
+    getItemClass() {
+      // from here we have methods for clients show table
+      return 'small-font'
+    },
+    cancelEdit() {
+      this.clearForm()
+      this.isEditing = false
+    },
+  },
+  computed: {
+    filteredClients() {
+      return this.clients.filter((client) =>
+        client.fullName.toLowerCase().includes(this.search.toLowerCase())
+      )
+    },
   },
 }
 </script>
 
 
 <style scoped>
+.container-fluid {
+  padding: 0 15px; /* Adjust the padding if needed */
+}
+
+.row {
+  margin: 0;
+}
+
+.col-md-3,
+.col-md-9 {
+  padding: 15px; /* Adjust the padding if needed */
+}
+
+.table {
+  width: 100%;
+}
+.small-font {
+  font-size: 2px; /* Adjust as needed */
+}
+.small-font th,
+.small-font td {
+  padding: 0px 0px; /* Adjust padding as needed */
+}
 .custom-card {
   padding: 8px; /* Adjust as needed */
   margin: 0 0 0 0;
@@ -206,7 +439,30 @@ export default {
 }
 
 .custom-actions {
-  padding: 0;
-  margin: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.v-data-table th,
+.v-data-table td {
+  padding: 2px !important; /* Adjust padding as needed */
+}
+
+::v-deep .v-data-table {
+  font-size: 10px !important;
+}
+
+::v-deep .v-data-table th,
+::v-deep .v-data-table td {
+  padding: 10px !important; /* Adjust padding as needed */
+  font-size: 9.2px !important;
+}
+
+.button-container {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
 }
 </style>
