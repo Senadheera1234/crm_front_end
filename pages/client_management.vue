@@ -89,11 +89,11 @@
         </v-card>
       </v-col>
 
-      <!-- customer list section -->
-      <v-col cols="12" md="9">
+      <v-col cols="12" md="9" style="padding-right: 0; margin-right;: 0">
+      
         <v-card dense>
           <v-card-title>
-            <h3 class="custom-title">Client List</h3>
+            <h3 class="custom-title">Client List </h3>
 
             <v-spacer></v-spacer>
             <v-text-field
@@ -104,16 +104,17 @@
             ></v-text-field>
           </v-card-title>
           <v-data-table
-            dense
+            
             :headers="headers"
-            :items="clients"
+            :items="filteredClients"
             item-key="name"
             class="elevation-1"
+            dense
             >
-        
+           
         
         </v-data-table>
-            
+      
          
         </v-card>
         
@@ -132,6 +133,7 @@ export default {
   props: {
     form: Object,
   },
+  
   data() {
     return {
       search: '',
@@ -142,7 +144,7 @@ export default {
           { text: 'Email', value: 'email' },
           { text: 'NIC', value: 'nic' },
           { text: 'Birth Day', value: 'birthDay' },
-          { text: 'Actions', value: 'actions', sortable: false },
+        
         ],
         clients: [],
        
@@ -256,11 +258,11 @@ export default {
       return 'small-font'
     },
   },
-    computed: {
-    filteredDesserts() {
-        return this.desserts.filter(dessert =>
-        dessert.name.toLowerCase().includes(this.search.toLowerCase())
-        );
+  computed: {
+    filteredClients() {
+      return this.clients.filter(client =>
+        client.fullName.toLowerCase().includes(this.search.toLowerCase())
+      )
     },
     },
 }
