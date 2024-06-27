@@ -138,16 +138,49 @@
             dense
           >
             <template v-slot:[`item.actions`]="{ item }">
-              <v-icon style="color: brown" small @click="editCustomer(item)"
-                >mdi-pencil</v-icon
-              >
+              <v-row no-gutters>
+                <v-col class="d-flex align-center">
+                  <v-icon
+                    style="color: darkblue; cursor: pointer"
+                    small
+                    @click="editCustomer(item)"
+                  >
+                    mdi-pencil
+                  </v-icon>
+                </v-col>
+                <v-col class="d-flex align-center">
+                  <v-icon
+                    style="color: red; cursor: pointer"
+                    small
+                    @click="openDeleteDialog(item)"
+                  >
+                    mdi-delete
+                  </v-icon>
+                </v-col>
+              </v-row>
             </template>
           </v-data-table>
-
-          ''
         </v-card>
       </v-col>
     </v-row>
+
+    <!-- Confirmation Dialog -->
+    <v-dialog v-model="dialog" max-width="400">
+      <v-card>
+        <v-card-title class="headline">Confirm Delete</v-card-title>
+        <v-card-text>
+          Are you sure you want to delete
+          {{ clientToDelete ? clientToDelete.fullName : 'this client' }}?
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="blue darken-1" text @click="dialog = false"
+            >Cancel</v-btn
+          >
+          <v-btn color="red darken-1" text @click="confirmDelete">Delete</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -166,6 +199,8 @@ export default {
       search: '',
       isEditing: false,
       currentClientId: null,
+      dialog: false,
+      clientToDelete: null, // Store the client to be deleted
       headers: [
         { text: 'Name', align: 'start', sortable: false, value: 'fullName' },
         { text: 'Address', value: 'address' },
@@ -313,15 +348,31 @@ export default {
       this.isEditing = true
       window.scrollTo(0, 0) // Scroll to top to see the form
     },
+    openDeleteDialog(item) {
+      this.clientToDelete = item
+      this.dialog = true
+    },
+
+    async confirmDelete() {
+      try {
+        await axios.delete(
+          `http://127.0.0.1:8000/api/clients/${this.clientToDelete.id}`
+        )
+        alert('Client deleted successfully!')
+        this.fetchClients() // Refresh client list after deletion
+        this.dialog = false // Close the dialog
+      } catch (error) {
+        alert(`Error deleting client: ${error.message}`)
+      }
+    },
 
     getItemClass() {
       // from here we have methods for clients show table
       return 'small-font'
     },
     cancelEdit() {
-      this.clearForm();
-      this.isEditing = false;
-   
+      this.clearForm()
+      this.isEditing = false
     },
   },
   computed: {
