@@ -1,13 +1,13 @@
 <template>
-  <v-container>
+  <v-container class="container-fluid">
     <v-row>
       <!-- Add new customer section -->
-      <v-col cols="12" md="4" style="padding-left: 0; margin-left: 0">
+      <v-col cols="12" md="3" style="padding-left: 0; margin-left: 0">
         <v-card class="custom-card" flat style="margin-left: 0">
           <v-card-title>
             <v-row>
               <v-col class="custom-field" style="padding-bottom: 10px">
-                <h3 class="custom-title">Add New Customer</h3>
+                <h3 class="custom-title">Add New Client</h3>
               </v-col>
             </v-row>
           </v-card-title>
@@ -67,7 +67,7 @@
                 style="margin-bottom: 5px"
               ></v-text-field>
               <v-text-field
-                label="birthDay"
+                label="Birth Day"
                 :rules="[rules.required]"
                 v-model="localForm.birthDay"
                 outlined
@@ -89,9 +89,36 @@
         </v-card>
       </v-col>
 
-      <!-- customer list section -->
-      <v-col cols="12" md="8">
-        <v-text> Hi there </v-text>
+      <v-col cols="12" md="9" style="padding-right: 0; margin-right;: 0">
+      
+        <v-card dense>
+          <v-card-title>
+            <h3 class="custom-title">Client List </h3>
+
+            <v-spacer></v-spacer>
+            <v-text-field
+            v-model="search"
+            label="Search"
+            single-line
+            hide-details
+            ></v-text-field>
+          </v-card-title>
+          <v-data-table
+            
+            :headers="headers"
+            :items="filteredClients"
+            item-key="name"
+            class="elevation-1"
+            dense
+            >
+           
+        
+        </v-data-table>
+      
+         
+        </v-card>
+        
+
       </v-col>
     </v-row>
   </v-container>
@@ -106,19 +133,56 @@ export default {
   props: {
     form: Object,
   },
+  
   data() {
     return {
-      localForm: { ...this.form },
+      search: '',
+       headers: [
+          { text: 'Name', align: 'start', sortable: false, value: 'fullName' },
+          { text: 'Address', value: 'address' },
+          { text: 'Phone', value: 'mobileNumber' },
+          { text: 'Email', value: 'email' },
+          { text: 'NIC', value: 'nic' },
+          { text: 'Birth Day', value: 'birthDay' },
+        
+        ],
+        clients: [],
+       
+      localForm: {
+        fullName: '',
+        address: '',
+        mobileNumber: '',
+        email: '',
+        nic: '',
+        birthDay: '',
+      },
       rules: {
-        required: (value) => !!value || 'Required.',
-        email: (value) => /.+@.+\..+/.test(value) || 'Invalid email.',
-        nic: (value) =>
-          /^\d{9}[VvXx]$/.test(value) ||
-          /^\d{12}$/.test(value) ||
-          'Invalid NIC format.',
-        phone: (value) => /^\d{10}$/.test(value) || 'Invalid phone number.',
+        required: (value) => {
+          console.log('Validating required:', value)
+          return !!value || 'Required.'
+        },
+        email: (value) => {
+          console.log('Validating email:', value)
+          return /.+@.+\..+/.test(value) || 'Invalid email.'
+        },
+        nic: (value) => {
+          console.log('Validating NIC:', value)
+          return (
+            /^\d{9}[VvXx]$/.test(value) ||
+            /^\d{12}$/.test(value) ||
+            'Invalid NIC format.'
+          )
+        },
+        phone: (value) => {
+          console.log('Validating phone:', value)
+          return /^\d{10}$/.test(value) || 'Invalid phone number.'
+        },
       },
     }
+  },
+
+  mounted() {
+    this.fetchClients()
   },
   methods: {
     updateForm(field, value) {
@@ -131,9 +195,13 @@ export default {
           await axios.post('http://127.0.0.1:8000/api/clients', this.localForm) // Removed 'response' assignment
           alert('Client added successfully!')
           this.clearForm() // Clear the form after successful submission
+          this.fetchClients() // Fetch updated list after adding
         } catch (error) {
-         
-         console.error('Error adding client:', error.response ? error.response.data : error.message)
+          alert(
+            `Error adding client: ${
+              error.response ? error.response.data : error.message
+            }`
+          )
         }
       }
     },
@@ -171,12 +239,60 @@ export default {
         this.$emit('update:form', { ...this.localForm })
       }
     },
+
+    async fetchClients() {
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/clients')
+        this.clients = response.data.data
+      } catch (error) {
+        alert(`Error fetching Clients: ${error.message}`)
+      }
+    },
+    editCustomer(item) {
+      this.localForm = { ...item }
+      window.scrollTo(0, 0) // Scroll to top to see the form
+    },
+
+    getItemClass() {
+      // from here we have methods for clients show table
+      return 'small-font'
+    },
   },
+  computed: {
+    filteredClients() {
+      return this.clients.filter(client =>
+        client.fullName.toLowerCase().includes(this.search.toLowerCase())
+      )
+    },
+    },
 }
 </script>
 
 
 <style scoped>
+.container-fluid {
+  padding: 0 15px; /* Adjust the padding if needed */
+}
+
+.row {
+  margin: 0;
+}
+
+.col-md-3,
+.col-md-9 {
+  padding: 15px; /* Adjust the padding if needed */
+}
+
+.table {
+  width: 100%;
+}
+.small-font {
+  font-size: 2px; /* Adjust as needed */
+}
+.small-font th,
+.small-font td {
+  padding: 0px 0px; /* Adjust padding as needed */
+}
 .custom-card {
   padding: 8px; /* Adjust as needed */
   margin: 0 0 0 0;
@@ -208,5 +324,22 @@ export default {
 .custom-actions {
   padding: 0;
   margin: 0;
+}
+
+
+
+.v-data-table th,
+.v-data-table td {
+  padding: 2px !important; /* Adjust padding as needed */
+}
+
+::v-deep .v-data-table {
+  font-size: 10px !important; 
+}
+
+::v-deep .v-data-table th,
+::v-deep .v-data-table td {
+  padding: 10px !important; /* Adjust padding as needed */
+  font-size: 9.2px !important;
 }
 </style>
